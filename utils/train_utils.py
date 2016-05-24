@@ -131,6 +131,13 @@ def add_rectangles(orig_image, confidences, boxes, arch, use_stitching=False, rn
                 (rect.cx+int(rect.width/2), rect.cy+int(rect.height/2)),
                 (0,255,0),
                 2)
+            cv2.putText(image,
+                str('%.3f' % rect.confidence),
+                (rect.cx + int(rect.width / 2) + 2, rect.cy + int(rect.height / 2)),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.5,
+                (0, 255, 0)
+                )
 
     rects = []
     for rect in acc_rects:

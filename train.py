@@ -7,9 +7,13 @@ import argparse
 import os
 import tensorflow as tf
 import numpy as np
-from tensorflow.models.rnn import rnn_cell
+#TB deprecated error: ImportError: This module is deprecated. Use tf.nn.rnn_cell insteat
+# from tensorflow.models.rnn import rnn_cell
+
 from tensorflow.python.framework import ops
 from tensorflow.python.ops import array_ops
+
+import freeze_graph
 
 random.seed(0)
 np.random.seed(0)
@@ -19,7 +23,8 @@ from utils import googlenet_load
 
 def build_lstm_inner(lstm_input, H):
     lstm_size = H['arch']['lstm_size']
-    lstm = rnn_cell.BasicLSTMCell(lstm_size, forget_bias=0.0)
+    #TB deprecatedL lstm = rnn_cell.BasicLSTMCell(lstm_size, forget_bias=0.0)
+    lstm = tf.nn.rnn_cell.BasicLSTMCell(lstm_size, forget_bias=0.0)
     batch_size = H['arch']['batch_size'] * H['arch']['grid_height'] * H['arch']['grid_width']
     state = tf.zeros([batch_size, lstm.state_size])
 
@@ -104,10 +109,10 @@ def build_overfeat_forward(H, x, googlenet, phase):
     pred_logits = tf.reshape(tf.nn.xw_plus_b(Z, googlenet['W'][0], googlenet['B'][0],
                                              name=phase+'/logits_0'), 
                              [H['arch']['batch_size'] * grid_size, H['arch']['num_classes']])
-    pred_confidences = tf.nn.softmax(pred_logits)
+    pred_confidences = tf.nn.softmax(pred_logits, name='pred_conf')
     pred_boxes = tf.reshape(tf.nn.xw_plus_b(Z, googlenet['W'][1], googlenet['B'][1],
                                             name=phase+'/logits_1'), 
-                            [H['arch']['batch_size'] * grid_size, 1, 4]) * 100
+                            [H['arch']['batch_size'] * grid_size, 1, 4], name='pred_boxes') * 100
     return pred_boxes, pred_logits, pred_confidences
 
 def build_overfeat(H, x, googlenet, phase, boxes, confidences_r):
@@ -280,6 +285,7 @@ def train(H, test_images):
             print('Restoring from: %s' % weights_str)
             saver.restore(sess, weights_str)
 
+
         # train model for N iterations
         for i in xrange(10000000):
             display_iter = 10
@@ -326,7 +332,7 @@ def train(H, test_images):
             else:
                 batch_loss_train, _ = sess.run([loss['train'], train_op], feed_dict=lr_feed)
 
-            if global_step.eval() % 1000 == 0: 
+            if global_step.eval() % 1000 == 0:
                 saver.save(sess, ckpt_file, global_step=global_step)
 
 
